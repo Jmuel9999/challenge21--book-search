@@ -7,21 +7,21 @@ const resolvers = {
     Query: {
       me: async (parent, args, context) => {
         if(context.user) {
-          const foundUser = await User.findOne({
-            $or: [{ _id: user ? user._id : params.id }, { username: params.username }],
+          const userInfo = await User.findOne({
+            $or: [{ _id: user ? user._id : params.id },
+                  { username: params.username }]
           });
-      
-          if (!foundUser) {
-            return res.status(400).json({ message: 'Cannot find a user with this id!' });
+          // if NO userInfo...
+          if (!userInfo) {
+            return res.status(400).json({ message: "No user found." });
           }
-          return foundUser;
+          return userInfo;
         }
       }
     },
 
     Mutation: {
       addUser: async (parent, args) => {
-        console.log("in add user", args)
         const user = await User.create(args);
         const token = signToken(user);
         console.log(token, user);
@@ -30,28 +30,24 @@ const resolvers = {
       login: async (parent, {email, password}) => {
         const user = await User.findOne({ email });
         if (!user) {
-          return res.status(400).json({ message: "Can't find this user" });
+          return res.status(400).json({ message: "No user found." });
         }
     
         const correctPw = await user.isCorrectPassword(password);
     
         if (!correctPw) {
-          return res.status(400).json({ message: 'Wrong password!' });
+          return res.status(400).json({ message: 'Incorrect password!' });
         }
         const token = signToken(user);
         return ({ token, user });
       },
       saveBook: async (parent, args, context) => {
-        console.log(context)
-        console.log("here is the book id", args)
         if (context.user) {
-          console.log("here is the user", context.user)
           let updatedUser = await User.findByIdAndUpdate(
             { _id: context.user._id },
             { $addToSet: { savedBooks: args } },
             { new: true }
           );
-          console.log("updated User", updatedUser)
           return updatedUser;
         }
       },
@@ -62,7 +58,7 @@ const resolvers = {
           { new: true }
         );
         if (!updatedUser) {
-          return res.status(404).json({ message: "Couldn't find user with this id!" });
+          return res.status(404).json({ message: "No user found!" });
         }
       }
     } 
